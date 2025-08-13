@@ -10,15 +10,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import os
 
-# Load config
 with open("config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
 
-# Load CSV of jobs
 df = pd.read_csv(config["csv_path"])
 jobs = df.to_dict(orient="records")
 
-# Chrome setup
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -31,7 +28,6 @@ def safe_type(element, text):
     element.send_keys(text)
 
 def auto_upload(file_keywords, file_path):
-    # Look for file inputs first
     try:
         inputs = driver.find_elements(By.XPATH, "//input[@type='file']")
         for inp in inputs:
@@ -42,7 +38,6 @@ def auto_upload(file_keywords, file_path):
     except:
         pass
 
-    # Look for clickable labels or buttons
     try:
         for kw in file_keywords:
             elems = driver.find_elements(By.XPATH, f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), '{kw}')]")
@@ -60,7 +55,6 @@ def auto_upload(file_keywords, file_path):
         pass
     return False
 
-# Guided one-by-one
 for job in jobs:
     link = job.get("Link")
     if not link or not str(link).startswith("http"):
@@ -68,9 +62,8 @@ for job in jobs:
 
     print(f"\nOpening job: {job.get('Name', '')} — {link}")
     driver.get(link)
-    time.sleep(5)  # Let page load
+    time.sleep(5)
 
-    # Try filling common fields
     field_map = {
         "name": config["full_name"],
         "full name": config["full_name"],
@@ -98,18 +91,13 @@ for job in jobs:
         except:
             continue
 
-    # Auto upload resume
     print("Uploading resume...")
     auto_upload(["resume", "cv"], os.path.abspath(config["resume_path"]))
     time.sleep(2)
 
-    # Auto upload cover letter
     print("Uploading cover letter...")
     auto_upload(["cover", "letter"], os.path.abspath(config["cover_letter_path"]))
     time.sleep(2)
 
     print("Please review this application manually in the browser, then submit or close it.")
     input("Press Enter here to continue to the next application...")
-
-driver.quit()
-print("All done.")
